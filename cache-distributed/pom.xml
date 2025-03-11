@@ -1,0 +1,42 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.wangguangwu</groupId>
+		<artifactId>cache-demo</artifactId>
+		<version>1.0.0</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<artifactId>cache-distributed</artifactId>
+
+	<dependencies>
+		<!-- Spring Boot Starter Web for Web functionality -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- Redis Client for Distributed Caching -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+
+		<!-- Redisson for Distributed Caching -->
+		<dependency>
+			<groupId>org.redisson</groupId>
+			<artifactId>redisson</artifactId>
+			<version>${redisson.version}</version>
+		</dependency>
+
+		<!-- Memcached for Distributed Caching -->
+		<!--集成Memcached-->
+		<dependency>
+			<groupId>com.googlecode.xmemcached</groupId>
+			<artifactId>xmemcached</artifactId>
+			<version>${memcached.version}</version>
+		</dependency>
+	</dependencies>
+</project>
