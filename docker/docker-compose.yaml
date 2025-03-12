@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:6.2.14
+    container_name: redis-container
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+  memcached:
+    image: memcached:1.6.21
+    container_name: memcached-container
+    restart: always
+    ports:
+      - "11211:11211"
+    command: ["-m", "64"]  # 设置最大内存 64MB
+
+volumes:
+  redis_data:
+    driver: local

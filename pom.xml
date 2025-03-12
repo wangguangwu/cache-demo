@@ -16,8 +16,8 @@
         <spring.boot.version>3.4.3</spring.boot.version>
         <guava.version>31.1-jre</guava.version>
         <caffeine.version>3.0.5</caffeine.version>
-        <redisson.version>3.16.2</redisson.version>
-        <memcached.version>2.4.5</memcached.version>
+        <redisson.version>3.22.0</redisson.version>
+        <memcached.version>2.4.7</memcached.version>
     </properties>
 
     <!-- Dependency Management -->
@@ -50,6 +50,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-data-redis</artifactId>
+                <version>${spring.boot.version}</version>
             </dependency>
 
             <!-- Redisson for Distributed Caching -->
