@@ -1,10 +1,12 @@
 package com.wangguangwu.cachelocal.config;
 
 import com.wangguangwu.cachelocal.constants.CacheTypeConstants;
+import com.wangguangwu.cachelocal.properties.LocalCacheProperties;
 import com.wangguangwu.cachelocal.service.LocalCacheService;
 import com.wangguangwu.cachelocal.service.impl.CaffeineLocalCacheService;
 import com.wangguangwu.cachelocal.service.impl.GuavaLocalCacheService;
 import com.wangguangwu.cachelocal.service.impl.MapLocalCacheService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,12 +17,15 @@ import org.springframework.context.annotation.Configuration;
  * @author wangguangwu
  */
 @Configuration
+@RequiredArgsConstructor
 public class LocalCacheConfig {
+
+    private final LocalCacheProperties localCacheProperties;
 
     @Bean
     @ConditionalOnProperty(name = CacheTypeConstants.LOCAL_CACHE_TYPE, havingValue = CacheTypeConstants.GUAVA)
     public LocalCacheService<Object, Object> guavaCacheService() {
-        return new GuavaLocalCacheService<>();
+        return new GuavaLocalCacheService<>(localCacheProperties);
     }
 
     @Bean

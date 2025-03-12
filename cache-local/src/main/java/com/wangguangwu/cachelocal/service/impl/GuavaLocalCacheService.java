@@ -2,16 +2,21 @@ package com.wangguangwu.cachelocal.service.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.wangguangwu.cachelocal.exception.CacheException;
+import com.wangguangwu.cachelocal.properties.LocalCacheProperties;
 import com.wangguangwu.cachelocal.service.LocalCacheService;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
- * 基于 Guava 实现的本地缓存
+ * 基于 Guava 实现的本地缓存服务。
+ * 本服务提供了常见的缓存操作，如放入缓存、获取缓存、判断缓存是否存在、缓存清除等。
+ * 支持缓存的过期策略和最大容量限制。
  *
+ * @param <K> 缓存的键类型
+ * @param <V> 缓存的值类型
  * @author wangguangwu
  */
 public class GuavaLocalCacheService<K, V> implements LocalCacheService<K, V> {
@@ -19,46 +24,20 @@ public class GuavaLocalCacheService<K, V> implements LocalCacheService<K, V> {
     private final Cache<K, V> cache;
 
     /**
-     * 缓存写入后过期时间，单位为秒
-     */
-    @Value("${cache.expireAfterWrite:10}")
-    private long expireAfterWrite;
-
-    /**
-     * 缓存访问后过期时间，单位为秒
-     */
-    @Value("${cache.expireAfterAccess:10}")
-    private long expireAfterAccess;
-
-    /**
-     * 缓存最大大小
-     */
-    @Value("${cache.maximumSize:100}")
-    private long maximumSize;
-
-    /**
      * GuavaLocalCacheService 构造方法，配置缓存策略。
      * 通过 Guava 的构建器设置缓存的过期时间、访问后过期时间和最大缓存大小等策略。
-     * <p>
-     * - expireAfterWrite: 设置数据写入缓存后多长时间过期，单位为秒。
-     * - expireAfterAccess: 设置数据最后一次访问后多长时间过期，单位为秒。
-     * - maximumSize: 限制缓存的最大容量，超过此大小时，最少使用的缓存项将被清除。
+     *
+     * @param localCacheProperties 缓存配置属性，包含过期时间、访问过期时间和最大缓存容量
      */
-    public GuavaLocalCacheService() {
+    public GuavaLocalCacheService(LocalCacheProperties localCacheProperties) {
+        if (localCacheProperties.getMaximumSize() <= 0) {
+            throw new IllegalArgumentException("Maximum cache size must be greater than 0");
+        }
 
-        // 确保注入的参数正确，否则会使用默认值
-        System.out.println("expireAfterWrite: " + expireAfterWrite + " seconds");
-        System.out.println("expireAfterAccess: " + expireAfterAccess + " seconds");
-//        cache = CacheBuilder.newBuilder()
-//                .expireAfterWrite(expireAfterWrite, TimeUnit.MINUTES)
-//                .expireAfterAccess(expireAfterAccess, TimeUnit.MINUTES)
-//                .maximumSize(maximumSize)
-//                .build();
-        // TODO： 问题出在参数注入上，我不是设定了默认值吗
         cache = CacheBuilder.newBuilder()
-                .expireAfterWrite(1, TimeUnit.MINUTES)
-                .expireAfterAccess(1, TimeUnit.MINUTES)
-                .maximumSize(100)
+                .expireAfterWrite(localCacheProperties.getExpireAfterWrite(), TimeUnit.SECONDS)
+                .expireAfterAccess(localCacheProperties.getExpireAfterAccess(), TimeUnit.SECONDS)
+                .maximumSize(localCacheProperties.getMaximumSize())
                 .build();
     }
 
@@ -71,18 +50,16 @@ public class GuavaLocalCacheService<K, V> implements LocalCacheService<K, V> {
     @Override
     public void put(K key, V value) {
         cache.put(key, value);
-        // TODO: 为什么 cache 中的 localCache 是空的
     }
 
     /**
      * 获取指定键的缓存值，如果不存在则返回 null。
      *
      * @param key 要获取的键
-     * @return 对应的缓存值
+     * @return 对应的缓存值，可能为 null
      */
     @Override
     public V getIfPresent(K key) {
-        // TODO：那么上面 put 之后，get 却拿不到数据
         return cache.getIfPresent(key);
     }
 
@@ -92,13 +69,14 @@ public class GuavaLocalCacheService<K, V> implements LocalCacheService<K, V> {
      * @param key             键
      * @param mappingFunction 计算值的方法
      * @return 缓存中的值
+     * @throws CacheException 如果缓存操作失败，则抛出自定义缓存异常
      */
     @Override
     public V get(K key, Function<? super K, ? extends V> mappingFunction) {
         try {
             return cache.get(key, () -> mappingFunction.apply(key));
         } catch (Exception e) {
-            throw new RuntimeException("Error loading value for key " + key, e);
+            throw new CacheException("Error loading value for key: " + key, e);
         }
     }
 
