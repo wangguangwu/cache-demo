@@ -37,6 +37,6 @@ public class LocalCacheConfig {
     @Bean
     @ConditionalOnProperty(name = CacheTypeConstants.LOCAL_CACHE_TYPE, havingValue = CacheTypeConstants.MAP)
     public LocalCacheService<Object, Object> mapCacheService() {
-        return new MapLocalCacheService<>();
+        return new MapLocalCacheService<>(localCacheProperties);
     }
 }

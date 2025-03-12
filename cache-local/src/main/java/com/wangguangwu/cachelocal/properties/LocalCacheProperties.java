@@ -26,16 +26,16 @@ public class LocalCacheProperties {
     /**
      * 缓存写入后过期时间，单位为秒
      */
-    private long expireAfterWrite = 10;
+    private int expireAfterWrite = 10;
 
     /**
      * 缓存访问后过期时间，单位为秒
      */
-    private long expireAfterAccess = 10;
+    private int expireAfterAccess = 10;
 
     /**
      * 缓存最大大小
      */
-    private long maximumSize = 100;
+    private int maximumSize = 100;
 
 }
