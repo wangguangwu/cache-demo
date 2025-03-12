@@ -10,18 +10,18 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-/**
- * @author wangguangwu
- */
 @SpringBootTest
-class GuavaCacheServiceTest {
+class GuavaLocalCacheServiceTest {
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
+        // TODO：使用动态注释可以吗
         registry.add(CacheTypeConstants.LOCAL_CACHE_TYPE, () -> CacheTypeConstants.GUAVA);
     }
 
@@ -33,8 +33,6 @@ class GuavaCacheServiceTest {
     void testCachePutAndGet() {
         localCacheService.put("key1", "value1");
         Object value = localCacheService.getIfPresent("key1");
-        System.out.println("已插入 key1 -> value1");
-        System.out.println("获取到的值: " + value);
         assertEquals("value1", value);
     }
 
@@ -42,39 +40,81 @@ class GuavaCacheServiceTest {
     @DisplayName("测试 Guava 缓存的过期策略")
     void testCacheExpiration() throws InterruptedException {
         localCacheService.put("key2", "value2");
-        System.out.println("已插入 key2 -> value2");
-
-        // 立即获取应该存在
-        Object value = localCacheService.getIfPresent("key2");
-        System.out.println("过期前获取到的值: " + value);
-        assertEquals("value2", value);
-
-        // 等待超过缓存的过期时间
         TimeUnit.SECONDS.sleep(11);
-
-        // 过期后应返回 null
-        value = localCacheService.getIfPresent("key2");
-        System.out.println("过期后获取到的值（应为 null）: " + value);
+        Object value = localCacheService.getIfPresent("key2");
         assertNull(value);
     }
 
     @Test
     @DisplayName("测试 Guava 缓存的最大容量限制")
     void testCacheSizeLimit() {
-        // 添加超过容量限制的元素
         for (int i = 0; i < 1100; i++) {
             localCacheService.put("key" + i, "value" + i);
         }
-        System.out.println("已向缓存中插入 1100 个元素");
-
-        // 由于 Guava 配置的最大容量是 1000，最早的应被淘汰
         Object value = localCacheService.getIfPresent("key0");
-        System.out.println("检查最早的条目是否被淘汰: " + value);
         assertNull(value);
-
-        // 最新的应该还存在
         value = localCacheService.getIfPresent("key1099");
-        System.out.println("检查最新的条目是否存在: " + value);
         assertEquals("value1099", value);
+    }
+
+    @Test
+    @DisplayName("测试 Guava 缓存处理 null 值")
+    void testCacheHandlingNullValues() {
+        localCacheService.put("key3", null);
+        Object value = localCacheService.getIfPresent("key3");
+        assertNull(value);
+    }
+
+    @Test
+    @DisplayName("测试 Guava 缓存为空时的行为")
+    void testCacheEmptyBehavior() {
+        Object value = localCacheService.getIfPresent("key4");
+        assertNull(value);
+    }
+
+    @Test
+    @DisplayName("测试 Guava 缓存达到最大容量时的驱逐")
+    void testCacheEviction() {
+        for (int i = 0; i < 1000; i++) {
+            localCacheService.put("key" + i, "value" + i);
+        }
+        localCacheService.put("key1001", "value1001");
+        Object value = localCacheService.getIfPresent("key0");
+        assertNull(value);
+    }
+
+    @Test
+    @DisplayName("测试过期后访问值是否正确刷新")
+    void testValueRefreshAfterExpiration() throws InterruptedException {
+        localCacheService.put("key5", "value5");
+        TimeUnit.SECONDS.sleep(11);
+        localCacheService.put("key5", "newValue5");
+        Object value = localCacheService.getIfPresent("key5");
+        assertEquals("newValue5", value);
+    }
+
+    @Test
+    @DisplayName("测试并发访问")
+    void testConcurrentAccess() throws InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 100; i++) {
+            final int index = i;
+            executor.submit(() -> localCacheService.put("key" + index, "value" + index));
+        }
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.MINUTES);
+        for (int i = 0; i < 100; i++) {
+            Object value = localCacheService.getIfPresent("key" + i);
+            assertEquals("value" + i, value);
+        }
+    }
+
+    @Test
+    @DisplayName("测试无效化功能")
+    void testCacheInvalidation() {
+        localCacheService.put("key6", "value6");
+        localCacheService.invalidate("key6");
+        Object value = localCacheService.getIfPresent("key6");
+        assertNull(value);
     }
 }
