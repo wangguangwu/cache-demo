@@ -2,58 +2,51 @@ package com.wangguangwu.cachelocal.service.impl;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.wangguangwu.cachelocal.properties.LocalCacheProperties;
 import com.wangguangwu.cachelocal.service.LocalCacheService;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
- * 基于 Caffeine 实现的本地缓存
+ * 基于 Caffeine 实现的本地缓存服务。
+ * 该服务提供了常见的缓存操作，如放入缓存、获取缓存、判断缓存是否存在、缓存清除等。
+ * 支持缓存的过期策略和最大容量限制。
  *
  * @author wangguangwu
+ * @param <K> 缓存的键类型
+ * @param <V> 缓存的值类型
  */
 public class CaffeineLocalCacheService<K, V> implements LocalCacheService<K, V> {
 
     private final Cache<K, V> cache;
 
     /**
-     * 缓存写入后过期时间，单位为秒
+     * 构造方法，配置缓存策略。
+     * 使用 Caffeine 的构建器来设置缓存过期时间、访问后过期时间、最大缓存大小等。
+     * 配置了键弱引用、值软引用以及启用了缓存统计，确保在内存压力下缓存能被合理回收。
+     *
+     * @param localCacheProperties 缓存配置属性，包含过期时间、访问过期时间和最大缓存容量
      */
-    @Value("${cache.expireAfterWrite:10}")
-    private long expireAfterWrite;
+    public CaffeineLocalCacheService(LocalCacheProperties localCacheProperties) {
+        // 检查最大缓存大小是否大于0，确保配置有效
+        if (localCacheProperties.getMaximumSize() <= 0) {
+            throw new IllegalArgumentException("Maximum cache size must be greater than 0");
+        }
 
-    /**
-     * 缓存访问后过期时间，单位为秒
-     */
-    @Value("${cache.expireAfterAccess:10}")
-    private long expireAfterAccess;
-
-    /**
-     * 缓存最大大小
-     */
-    @Value("${cache.maximumSize:100}")
-    private long maximumSize;
-
-    /**
-     * CaffeineLocalCacheService 构造方法，配置缓存策略。
-     * 通过 Caffeine 的构建器设置缓存的过期时间、访问后过期时间和最大缓存大小等策略。
-     * <p>
-     * - expireAfterWrite: 设置数据写入缓存后多长时间过期，单位为秒。
-     * - expireAfterAccess: 设置数据最后一次访问后多长时间过期，单位为秒。
-     * - maximumSize: 限制缓存的最大容量，超过此大小时，最少使用的缓存项将被清除。
-     * - weakKeys(): 允许缓存键在没有强引用时被垃圾回收。
-     * - softValues(): 允许缓存值在内存压力较大时被垃圾回收。
-     * - recordStats(): 启用缓存统计信息，方便分析缓存命中率等数据。
-     */
-    public CaffeineLocalCacheService() {
         cache = Caffeine.newBuilder()
-                .expireAfterWrite(expireAfterWrite, TimeUnit.SECONDS)
-                .expireAfterAccess(expireAfterAccess, TimeUnit.SECONDS)
-                .maximumSize(maximumSize)
+                // expireAfterWrite: 指定缓存项在写入后多久过期。这里使用 localCacheProperties.getExpireAfterWrite() 指定秒数。
+                .expireAfterWrite(localCacheProperties.getExpireAfterWrite(), TimeUnit.SECONDS)
+                // expireAfterAccess: 指定缓存项在最后一次访问后多久过期。这里使用 localCacheProperties.getExpireAfterAccess() 指定秒数。
+                .expireAfterAccess(localCacheProperties.getExpireAfterAccess(), TimeUnit.SECONDS)
+                // maximumSize: 指定缓存的最大容量。当缓存项数量超过该值时，Caffeine 会根据一定的策略进行回收。
+                .maximumSize(localCacheProperties.getMaximumSize())
+                // weakKeys: 使用弱引用存储键，这样在内存不足时，键可以被垃圾回收，从而释放缓存空间。
                 .weakKeys()
+                // softValues: 使用软引用存储值，这样在内存不足时，值可以被垃圾回收，从而释放缓存空间。
                 .softValues()
+                // recordStats: 启用缓存统计功能，用于监控缓存的命中率和其他性能指标。
                 .recordStats()
                 .build();
     }
@@ -73,7 +66,7 @@ public class CaffeineLocalCacheService<K, V> implements LocalCacheService<K, V> 
      * 获取指定键的缓存值，如果不存在则返回 null。
      *
      * @param key 要获取的键
-     * @return 对应的缓存值
+     * @return 对应的缓存值，可能为 null
      */
     @Override
     public V getIfPresent(K key) {

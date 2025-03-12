@@ -31,7 +31,7 @@ public class LocalCacheConfig {
     @Bean
     @ConditionalOnProperty(name = CacheTypeConstants.LOCAL_CACHE_TYPE, havingValue = CacheTypeConstants.CAFFEINE)
     public LocalCacheService<Object, Object> caffeineCacheService() {
-        return new CaffeineLocalCacheService<>();
+        return new CaffeineLocalCacheService<>(localCacheProperties);
     }
 
     @Bean

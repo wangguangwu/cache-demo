@@ -2,6 +2,8 @@ package com.wangguangwu.cachelocal.service.impl;
 
 import com.wangguangwu.cachelocal.constants.CacheTypeConstants;
 import com.wangguangwu.cachelocal.service.LocalCacheService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,21 +16,30 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class CaffeineCacheServiceTest {
-
-    @Autowired
-    private LocalCacheService<Object, Object> localCacheService;
+class CaffeineLocalCacheServiceTest {
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
         registry.add(CacheTypeConstants.LOCAL_CACHE_TYPE, () -> CacheTypeConstants.CAFFEINE);
     }
 
+    @Autowired
+    private LocalCacheService<Object, Object> localCacheService;
+
+    @BeforeEach
+    void setUp() {
+        localCacheService.invalidateAll();
+    }
+
+    @AfterEach
+    void tearDown() {
+        localCacheService.invalidateAll();
+    }
+
     @Test
     @DisplayName("测试 Caffeine 缓存的 put 和 get 方法")
     void testCachePutAndGet() {
         localCacheService.put("key2", "value2");
-        System.out.println("Putting key2 with value2 into cache.");
         Object value = localCacheService.getIfPresent("key2");
         assertEquals("value2", value);
     }
